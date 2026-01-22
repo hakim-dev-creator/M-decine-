@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>السجل الطبي - الحاسبة التفاعلية</title>
+    <title>السجل الطبي - نسخة نظيفة</title>
     <style>
         :root {
             --primary: #0284c7;
@@ -116,7 +116,7 @@
 
         textarea { resize: vertical; min-height: 60px; }
 
-        /* --- الحاسبة --- */
+        /* --- الحاسبة (الإدخال) --- */
         .calc-box {
             background-color: #f0f9ff;
             border: 2px dashed #7dd3fc;
@@ -133,60 +133,56 @@
             text-align: center;
         }
 
-        .result-field {
-            background-color: white;
-            color: var(--primary);
-            font-weight: bold;
-            text-align: center;
-        }
-
-        /* --- شريط التقدم والعداد الحي (الجديد) --- */
+        /* --- المعاينة الحية --- */
         .live-feedback-container {
             margin-top: 15px;
             background: white;
             padding: 10px;
             border-radius: 8px;
             border: 1px solid #bae6fd;
-            display: none; /* مخفي افتراضياً */
+            display: none;
         }
 
-        .live-countdown-text {
+        /* --- تصميم السجل المحفوظ --- */
+        .saved-progress-card {
+            margin-top: 10px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .saved-info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+
+        .saved-status-text {
             text-align: center;
             font-weight: bold;
-            color: #0369a1;
-            margin-bottom: 5px;
             font-size: 0.9rem;
+            color: #0369a1;
+            margin-bottom: 8px;
         }
 
-        .live-progress-bg {
+        .progress-track {
             background-color: #e2e8f0;
-            border-radius: 10px;
-            height: 12px;
+            height: 10px;
+            border-radius: 5px;
             width: 100%;
             overflow: hidden;
         }
 
-        .live-progress-bar {
+        .progress-fill {
             height: 100%;
-            width: 0%;
             background-color: var(--success);
-            transition: width 0.5s ease-in-out, background-color 0.3s;
+            width: 0%;
+            transition: width 0.5s ease;
         }
-
-        /* --- شارات الحالة في القائمة المحفوظة --- */
-        .status-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            margin-top: 8px;
-            width: fit-content;
-        }
-        .badge-active { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
-        .badge-warning { background-color: #ffedd5; color: #9a3412; border: 1px solid #fdba74; }
-        .badge-ended { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .badge-future { background-color: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
 
         /* --- زر رفع الملفات --- */
         input[type="file"] { display: none; }
@@ -215,11 +211,13 @@
         }
 
         .entries-list { margin-top: 20px; border-top: 2px dashed var(--border); padding-top: 10px; }
+        
         .entry-item {
             background: #f8fafc; padding: 12px; border-radius: 6px;
-            margin-bottom: 8px; font-size: 0.9rem; position: relative;
+            margin-bottom: 12px; font-size: 0.9rem; position: relative;
             border-right: 4px solid var(--primary);
         }
+        
         .entry-meta { font-size: 0.75rem; color: #64748b; margin-bottom: 6px; display: flex; justify-content: space-between; }
         .btn-delete-entry { position: absolute; left: 10px; top: 10px; color: var(--danger); background: none; border: none; cursor: pointer; font-size: 1.2rem; }
         
@@ -272,28 +270,18 @@
                 <div class="section-content">
                     
                     <div class="calc-box">
-                        <div class="calc-title">🧮 حاسبة فترة العلاج</div>
+                        <div class="calc-title">🧮 حاسبة فترة العلاج (اختياري)</div>
                         <div class="input-row">
                             <input type="number" id="calc_duration" placeholder="المدة (أيام)" oninput="updateCalculatorLive()">
                             <input type="date" id="calc_startDate" onchange="updateCalculatorLive()">
                         </div>
                         
-                        <div class="input-row">
-                            <input type="text" id="calc_resultDate" class="result-field" placeholder="تاريخ آخر حبة" readonly>
-                        </div>
-                        <div id="calc_dayName" style="text-align:center; font-size:0.8rem; color:#64748b; margin-bottom:5px;"></div>
-
                         <div id="live_feedback" class="live-feedback-container">
-                            <div id="live_text" class="live-countdown-text"></div>
-                            <div class="live-progress-bg">
-                                <div id="live_bar" class="live-progress-bar"></div>
-                            </div>
+                             <div id="live_text" class="saved-status-text"></div>
+                             <div class="progress-track">
+                                 <div id="live_bar" class="progress-fill"></div>
+                             </div>
                         </div>
-
-                    </div>
-                    <div class="input-row">
-                        <input type="date" id="rx_date" readonly style="background:#f1f5f9">
-                        <input type="time" id="rx_time" readonly style="background:#f1f5f9">
                     </div>
                     <textarea id="rx_details" placeholder="تفاصيل الأدوية والجرعات..."></textarea>
                     
@@ -305,6 +293,7 @@
                     </div>
 
                     <button class="btn-save-entry" onclick="saveData('prescriptions')">حفظ الوصفة وبدء المتابعة</button>
+                    
                     <div class="entries-list" id="list_prescriptions"></div>
                 </div>
             </div>
@@ -382,105 +371,90 @@
     let currentId = null;
 
     window.onload = function() {
-        const saved = localStorage.getItem('emr_db_v7');
+        const saved = localStorage.getItem('emr_db_clean');
         if (saved) patients = JSON.parse(saved);
         renderPatientList();
     };
 
     function saveDB() {
         try {
-            localStorage.setItem('emr_db_v7', JSON.stringify(patients));
+            localStorage.setItem('emr_db_clean', JSON.stringify(patients));
         } catch(e) {
             alert("تنبيه: الذاكرة ممتلئة.");
         }
     }
 
-    // --- الوظيفة الرئيسية: تحديث الحاسبة والمعاينة الحية ---
     function updateCalculatorLive() {
         const duration = parseInt(document.getElementById('calc_duration').value);
         const startDateStr = document.getElementById('calc_startDate').value;
-        const resultField = document.getElementById('calc_resultDate');
-        const dayLabel = document.getElementById('calc_dayName');
         const feedbackBox = document.getElementById('live_feedback');
         const feedbackText = document.getElementById('live_text');
         const feedbackBar = document.getElementById('live_bar');
 
         if (!duration || !startDateStr) {
-            resultField.value = "";
-            dayLabel.textContent = "";
             feedbackBox.style.display = "none";
             return;
         }
 
-        // 1. حساب تاريخ النهاية
-        const startDate = new Date(startDateStr);
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + (duration - 1));
-
-        resultField.value = endDate.toISOString().split('T')[0];
-        const daysAr = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-        dayLabel.textContent = `يوافق يوم: ${daysAr[endDate.getDay()]}`;
-
-        // 2. حساب التقدم والعداد
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        startDate.setHours(0,0,0,0);
-        endDate.setHours(0,0,0,0);
-
         feedbackBox.style.display = "block";
+        const calcData = calculateProgress(startDateStr, duration);
 
-        if (today < startDate) {
-            // مستقبل
-            const diff = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
-            feedbackText.textContent = `⏳ يبدأ العلاج بعد ${diff} يوم`;
-            feedbackBar.style.width = "0%";
-            feedbackBar.style.backgroundColor = "#e2e8f0";
-        } else if (today > endDate) {
-            // منتهي
-            feedbackText.textContent = `✅ العلاج مكتمل`;
-            feedbackBar.style.width = "100%";
-            feedbackBar.style.backgroundColor = "#94a3b8"; // رمادي
+        feedbackText.textContent = calcData.text;
+        feedbackBar.style.width = calcData.percent + "%";
+        feedbackBar.style.backgroundColor = calcData.color;
+    }
+
+    function calculateProgress(startDateStr, duration) {
+        const start = new Date(startDateStr);
+        const end = new Date(start);
+        end.setDate(end.getDate() + (parseInt(duration) - 1));
+        
+        const today = new Date();
+        today.setHours(0,0,0,0); start.setHours(0,0,0,0); end.setHours(0,0,0,0);
+
+        const dayNames = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+        const endDateFormatted = `${end.toISOString().split('T')[0]} (${dayNames[end.getDay()]})`;
+
+        let text = "";
+        let percent = 0;
+        let color = "#10b981";
+
+        if (today < start) {
+            const diff = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+            text = `⏳ يبدأ العلاج بعد ${diff} يوم`;
+            percent = 0;
+            color = "#cbd5e1";
+        } else if (today > end) {
+            text = `✅ انتهت الفترة العلاجية`;
+            percent = 100;
+            color = "#94a3b8";
         } else {
-            // نشط
-            const totalTime = endDate - startDate;
-            const elapsedTime = today - startDate;
-            
-            // إضافة 1 لأن اليوم الحالي يعتبر منجز جزئياً أو كلياً في السياق الطبي
-            const daysPassed = Math.ceil(elapsedTime / (1000 * 60 * 60 * 24)) + 1;
-            
-            // حساب النسبة
-            let percent = (daysPassed / duration) * 100;
-            if(percent > 100) percent = 100;
-
-            const remaining = duration - daysPassed + 1; // +1 لاحتساب اليوم الحالي
-
-            feedbackText.textContent = `نشط: اليوم ${daysPassed} من ${duration} (بقي ${remaining} يوم)`;
-            feedbackBar.style.width = percent + "%";
-            feedbackBar.style.backgroundColor = "#10b981"; // أخضر
+            const total = parseInt(duration);
+            const passed = Math.ceil((today - start) / (1000 * 60 * 60 * 24)) + 1;
+            percent = (passed / total) * 100;
+            const remaining = total - passed;
+            text = `نشط: اليوم ${passed} من ${total} (بقي ${remaining} يوم)`;
+            if(remaining === 0) color = "#f59e0b";
         }
+
+        return { text, percent, color, endDateFormatted };
     }
 
-    // --- دالة حالة القائمة (للسجلات المحفوظة) ---
-    function getStatusBadge(startDateStr, duration) {
-        if (!startDateStr || !duration) return "";
-        const today = new Date(); today.setHours(0,0,0,0);
-        const start = new Date(startDateStr); start.setHours(0,0,0,0);
-        const end = new Date(start); end.setDate(end.getDate() + (parseInt(duration) - 1));
-
-        if (today < start) return `<div class="status-badge badge-future">⏳ قريباً</div>`;
-        if (today > end) return `<div class="status-badge badge-ended">✅ منتهي</div>`;
-        
-        const diffTime = end - today;
-        const remaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-        
-        let style = "badge-active";
-        let txt = `بقي ${remaining} يوم`;
-        if(remaining===1) { style="badge-warning"; txt="اليوم الأخير!"; }
-        
-        return `<div class="status-badge ${style}">${txt}</div>`;
+    function generateSavedProgressBar(startStr, duration) {
+        const data = calculateProgress(startStr, duration);
+        return `
+            <div class="saved-progress-card">
+                <div class="saved-info-row">
+                    <span>📅 نهاية العلاج: <strong>${data.endDateFormatted}</strong></span>
+                </div>
+                <div class="saved-status-text">${data.text}</div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width:${data.percent}%; background-color:${data.color};"></div>
+                </div>
+            </div>
+        `;
     }
 
-    // --- إدارة المرضى ---
     function addPatient() {
         const name = prompt("اسم المريض الجديد:");
         if (!name) return;
@@ -538,10 +512,10 @@
         if(secId === 'sec_appointments') {
             document.getElementById('appt_date').value = dateStr; document.getElementById('appt_time').value = timeStr;
         } else if(secId === 'sec_prescriptions') {
-            document.getElementById('rx_date').value = dateStr; document.getElementById('rx_time').value = timeStr;
+            // تم حذف حقول الوصفة (rx_date, rx_time) لذا لا نحتاج لتعيين قيمتها هنا
             const calcDate = document.getElementById('calc_startDate');
             if(!calcDate.value) calcDate.value = dateStr;
-            updateCalculatorLive(); // تحديث فوري عند الفتح
+            updateCalculatorLive(); 
         } else if(secId === 'sec_labs') {
             document.getElementById('lab_date').value = dateStr;
         } else if(secId === 'sec_vitals') {
@@ -564,6 +538,7 @@
             patients[pIndex][type].unshift(entryData);
             saveDB(); renderList(type);
             
+            // تصفير الحقول
             if(type === 'prescriptions') {
                 document.getElementById('rx_details').value = '';
                 document.getElementById('rx_file').value = '';
@@ -571,8 +546,6 @@
                 document.getElementById('rx_file_label').style = '';
                 // تصفير الحاسبة
                 document.getElementById('calc_duration').value = '';
-                document.getElementById('calc_resultDate').value = '';
-                document.getElementById('calc_dayName').textContent = '';
                 document.getElementById('live_feedback').style.display = 'none';
             } else if (type === 'labs') {
                 document.getElementById('lab_name').value = ''; document.getElementById('lab_result').value = ''; document.getElementById('lab_file').value = '';
@@ -586,6 +559,11 @@
             body.style.maxHeight = body.scrollHeight + "px";
         };
 
+        // إنشاء تاريخ ووقت حاليين تلقائياً
+        const now = new Date();
+        const autoDate = now.toISOString().split('T')[0];
+        const autoTime = now.toTimeString().split(' ')[0].substring(0, 5);
+
         let entry = {};
         if (type === 'prescriptions') {
             const details = document.getElementById('rx_details').value;
@@ -595,7 +573,9 @@
             const startVal = document.getElementById('calc_startDate').value;
             
             entry = { 
-                date: document.getElementById('rx_date').value, time: document.getElementById('rx_time').value, details: details, file: null,
+                date: autoDate, // تاريخ تلقائي
+                time: autoTime, // وقت تلقائي
+                details: details, file: null,
                 treatmentDuration: durationVal || null, treatmentStart: startVal || null
             };
             const fileInput = document.getElementById('rx_file');
@@ -644,9 +624,11 @@
 
             if (type === 'appointments') { metaHtml += ` <span>🕒 ${item.time}</span>`; contentHtml = `<strong>السبب:</strong> ${item.note}`; }
             else if (type === 'prescriptions') { 
-                let statusBadge = "";
-                if(item.treatmentDuration && item.treatmentStart) statusBadge = getStatusBadge(item.treatmentStart, item.treatmentDuration);
-                contentHtml = `<div style="white-space: pre-wrap;">${item.details}</div>${attachmentHtml}${statusBadge}`; 
+                let progressHtml = "";
+                if(item.treatmentDuration && item.treatmentStart) {
+                    progressHtml = generateSavedProgressBar(item.treatmentStart, item.treatmentDuration);
+                }
+                contentHtml = `<div style="white-space: pre-wrap;">${item.details}</div>${attachmentHtml}${progressHtml}`; 
             }
             else if (type === 'labs') { contentHtml = `<strong>${item.name}</strong><br><span style="color:#475569">${item.result}</span>${attachmentHtml}`; }
             else if (type === 'vitals') { contentHtml = `وزن: <strong>${item.weight || '-'}</strong> | طول: <strong>${item.height || '-'}</strong>`; }
