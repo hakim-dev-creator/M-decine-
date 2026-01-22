@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>السجل الطبي الشامل + حاسبة العلاج</title>
+    <title>السجل الطبي - الحاسبة التفاعلية</title>
     <style>
         :root {
             --primary: #0284c7;
             --primary-light: #e0f2fe;
-            --primary-border: #bae6fd;
-            --secondary: #64748b;
             --bg: #f8fafc;
             --card-bg: #ffffff;
             --border: #e2e8f0;
             --danger: #ef4444;
             --success: #10b981;
+            --warning: #f59e0b;
         }
 
         body {
@@ -106,7 +105,7 @@
         /* --- الحقول --- */
         .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
 
-        input, textarea, .file-upload-label {
+        input, textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #cbd5e1;
@@ -117,7 +116,7 @@
 
         textarea { resize: vertical; min-height: 60px; }
 
-        /* --- تصميم الحاسبة --- */
+        /* --- الحاسبة --- */
         .calc-box {
             background-color: #f0f9ff;
             border: 2px dashed #7dd3fc;
@@ -139,12 +138,58 @@
             color: var(--primary);
             font-weight: bold;
             text-align: center;
-            border-color: var(--primary-border);
         }
+
+        /* --- شريط التقدم والعداد الحي (الجديد) --- */
+        .live-feedback-container {
+            margin-top: 15px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #bae6fd;
+            display: none; /* مخفي افتراضياً */
+        }
+
+        .live-countdown-text {
+            text-align: center;
+            font-weight: bold;
+            color: #0369a1;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .live-progress-bg {
+            background-color: #e2e8f0;
+            border-radius: 10px;
+            height: 12px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .live-progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--success);
+            transition: width 0.5s ease-in-out, background-color 0.3s;
+        }
+
+        /* --- شارات الحالة في القائمة المحفوظة --- */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-top: 8px;
+            width: fit-content;
+        }
+        .badge-active { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .badge-warning { background-color: #ffedd5; color: #9a3412; border: 1px solid #fdba74; }
+        .badge-ended { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .badge-future { background-color: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
 
         /* --- زر رفع الملفات --- */
         input[type="file"] { display: none; }
-        
         .file-upload-label {
             display: block;
             background: #f8fafc;
@@ -155,12 +200,7 @@
             font-size: 0.9rem;
             transition: 0.3s;
         }
-        
-        .file-upload-label:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-            background: #f0f9ff;
-        }
+        .file-upload-label:hover { border-color: var(--primary); color: var(--primary); background: #f0f9ff; }
 
         .btn-save-entry {
             background: var(--success);
@@ -174,7 +214,6 @@
             margin-top: 10px;
         }
 
-        /* --- القوائم --- */
         .entries-list { margin-top: 20px; border-top: 2px dashed var(--border); padding-top: 10px; }
         .entry-item {
             background: #f8fafc; padding: 12px; border-radius: 6px;
@@ -183,9 +222,7 @@
         }
         .entry-meta { font-size: 0.75rem; color: #64748b; margin-bottom: 6px; display: flex; justify-content: space-between; }
         .btn-delete-entry { position: absolute; left: 10px; top: 10px; color: var(--danger); background: none; border: none; cursor: pointer; font-size: 1.2rem; }
-        .attachment-link { display: inline-block; margin-top: 8px; padding: 4px 8px; background: #e0f2fe; color: var(--primary); border-radius: 4px; font-size: 0.8rem; text-decoration: none; cursor: pointer; font-weight: bold; }
         
-        /* ألوان البطاقات */
         .card-appointment .entry-item { border-color: #8b5cf6; } 
         .card-prescription .entry-item { border-color: #10b981; }
         .card-lab .entry-item { border-color: #f59e0b; }
@@ -235,15 +272,24 @@
                 <div class="section-content">
                     
                     <div class="calc-box">
-                        <div class="calc-title">🧮 حاسبة نهاية الكورس العلاجي</div>
+                        <div class="calc-title">🧮 حاسبة فترة العلاج</div>
                         <div class="input-row">
-                            <input type="number" id="calc_duration" placeholder="المدة (أيام)" oninput="calculateEndDate()">
-                            <input type="date" id="calc_startDate" onchange="calculateEndDate()">
+                            <input type="number" id="calc_duration" placeholder="المدة (أيام)" oninput="updateCalculatorLive()">
+                            <input type="date" id="calc_startDate" onchange="updateCalculatorLive()">
                         </div>
+                        
                         <div class="input-row">
                             <input type="text" id="calc_resultDate" class="result-field" placeholder="تاريخ آخر حبة" readonly>
                         </div>
-                        <div id="calc_dayName" style="text-align:center; font-size:0.8rem; color:#64748b;"></div>
+                        <div id="calc_dayName" style="text-align:center; font-size:0.8rem; color:#64748b; margin-bottom:5px;"></div>
+
+                        <div id="live_feedback" class="live-feedback-container">
+                            <div id="live_text" class="live-countdown-text"></div>
+                            <div class="live-progress-bg">
+                                <div id="live_bar" class="live-progress-bar"></div>
+                            </div>
+                        </div>
+
                     </div>
                     <div class="input-row">
                         <input type="date" id="rx_date" readonly style="background:#f1f5f9">
@@ -258,7 +304,7 @@
                         <input type="file" id="rx_file" onchange="updateLabel('rx_file', 'rx_file_label')">
                     </div>
 
-                    <button class="btn-save-entry" onclick="saveData('prescriptions')">حفظ الوصفة</button>
+                    <button class="btn-save-entry" onclick="saveData('prescriptions')">حفظ الوصفة وبدء المتابعة</button>
                     <div class="entries-list" id="list_prescriptions"></div>
                 </div>
             </div>
@@ -336,59 +382,111 @@
     let currentId = null;
 
     window.onload = function() {
-        const saved = localStorage.getItem('emr_db_v3');
+        const saved = localStorage.getItem('emr_db_v7');
         if (saved) patients = JSON.parse(saved);
         renderPatientList();
     };
 
     function saveDB() {
         try {
-            localStorage.setItem('emr_db_v3', JSON.stringify(patients));
+            localStorage.setItem('emr_db_v7', JSON.stringify(patients));
         } catch(e) {
-            alert("تنبيه: حجم الملفات كبير جداً.");
+            alert("تنبيه: الذاكرة ممتلئة.");
         }
     }
 
-    // --- وظيفة الحاسبة ---
-    function calculateEndDate() {
+    // --- الوظيفة الرئيسية: تحديث الحاسبة والمعاينة الحية ---
+    function updateCalculatorLive() {
         const duration = parseInt(document.getElementById('calc_duration').value);
         const startDateStr = document.getElementById('calc_startDate').value;
         const resultField = document.getElementById('calc_resultDate');
         const dayLabel = document.getElementById('calc_dayName');
+        const feedbackBox = document.getElementById('live_feedback');
+        const feedbackText = document.getElementById('live_text');
+        const feedbackBar = document.getElementById('live_bar');
 
         if (!duration || !startDateStr) {
             resultField.value = "";
             dayLabel.textContent = "";
+            feedbackBox.style.display = "none";
             return;
         }
 
-        const date = new Date(startDateStr);
-        // المعادلة الطبية: تاريخ البدء + المدة - 1
-        date.setDate(date.getDate() + (duration - 1));
+        // 1. حساب تاريخ النهاية
+        const startDate = new Date(startDateStr);
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + (duration - 1));
 
-        const formatted = date.toISOString().split('T')[0];
-        resultField.value = formatted;
-
+        resultField.value = endDate.toISOString().split('T')[0];
         const daysAr = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-        dayLabel.textContent = `يوافق يوم: ${daysAr[date.getDay()]}`;
+        dayLabel.textContent = `يوافق يوم: ${daysAr[endDate.getDay()]}`;
+
+        // 2. حساب التقدم والعداد
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        startDate.setHours(0,0,0,0);
+        endDate.setHours(0,0,0,0);
+
+        feedbackBox.style.display = "block";
+
+        if (today < startDate) {
+            // مستقبل
+            const diff = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
+            feedbackText.textContent = `⏳ يبدأ العلاج بعد ${diff} يوم`;
+            feedbackBar.style.width = "0%";
+            feedbackBar.style.backgroundColor = "#e2e8f0";
+        } else if (today > endDate) {
+            // منتهي
+            feedbackText.textContent = `✅ العلاج مكتمل`;
+            feedbackBar.style.width = "100%";
+            feedbackBar.style.backgroundColor = "#94a3b8"; // رمادي
+        } else {
+            // نشط
+            const totalTime = endDate - startDate;
+            const elapsedTime = today - startDate;
+            
+            // إضافة 1 لأن اليوم الحالي يعتبر منجز جزئياً أو كلياً في السياق الطبي
+            const daysPassed = Math.ceil(elapsedTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            // حساب النسبة
+            let percent = (daysPassed / duration) * 100;
+            if(percent > 100) percent = 100;
+
+            const remaining = duration - daysPassed + 1; // +1 لاحتساب اليوم الحالي
+
+            feedbackText.textContent = `نشط: اليوم ${daysPassed} من ${duration} (بقي ${remaining} يوم)`;
+            feedbackBar.style.width = percent + "%";
+            feedbackBar.style.backgroundColor = "#10b981"; // أخضر
+        }
+    }
+
+    // --- دالة حالة القائمة (للسجلات المحفوظة) ---
+    function getStatusBadge(startDateStr, duration) {
+        if (!startDateStr || !duration) return "";
+        const today = new Date(); today.setHours(0,0,0,0);
+        const start = new Date(startDateStr); start.setHours(0,0,0,0);
+        const end = new Date(start); end.setDate(end.getDate() + (parseInt(duration) - 1));
+
+        if (today < start) return `<div class="status-badge badge-future">⏳ قريباً</div>`;
+        if (today > end) return `<div class="status-badge badge-ended">✅ منتهي</div>`;
+        
+        const diffTime = end - today;
+        const remaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        
+        let style = "badge-active";
+        let txt = `بقي ${remaining} يوم`;
+        if(remaining===1) { style="badge-warning"; txt="اليوم الأخير!"; }
+        
+        return `<div class="status-badge ${style}">${txt}</div>`;
     }
 
     // --- إدارة المرضى ---
     function addPatient() {
         const name = prompt("اسم المريض الجديد:");
         if (!name) return;
-        const newPatient = {
-            id: Date.now(),
-            name: name,
-            appointments: [],
-            prescriptions: [],
-            labs: [],
-            vitals: [],
-            notes: []
-        };
+        const newPatient = { id: Date.now(), name: name, appointments: [], prescriptions: [], labs: [], vitals: [], notes: [] };
         patients.push(newPatient);
-        saveDB();
-        renderPatientList();
+        saveDB(); renderPatientList();
         document.getElementById('patientSelect').value = newPatient.id;
         loadPatient();
     }
@@ -396,12 +494,7 @@
     function renderPatientList() {
         const sel = document.getElementById('patientSelect');
         sel.innerHTML = '<option value="" disabled selected>-- اختر ملف مريض --</option>';
-        patients.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.id;
-            opt.textContent = p.name;
-            sel.appendChild(opt);
-        });
+        patients.forEach(p => { const opt = document.createElement('option'); opt.value = p.id; opt.textContent = p.name; sel.appendChild(opt); });
     }
 
     function loadPatient() {
@@ -411,24 +504,14 @@
         const p = patients.find(x => x.id === currentId);
         document.getElementById('currentPatientName').textContent = `الملف النشط: ${p.name}`;
         document.getElementById('sectionsContainer').style.display = 'block';
-
-        renderList('appointments');
-        renderList('prescriptions');
-        renderList('labs');
-        renderList('vitals');
-        renderList('notes');
-
-        document.querySelectorAll('.section-card').forEach(c => {
-            c.classList.remove('active');
-            c.querySelector('.section-body').style.maxHeight = null;
-        });
+        ['appointments', 'prescriptions', 'labs', 'vitals', 'notes'].forEach(t => renderList(t));
+        document.querySelectorAll('.section-card').forEach(c => { c.classList.remove('active'); c.querySelector('.section-body').style.maxHeight = null; });
     }
 
     function deleteCurrentPatient() {
-        if(confirm("هل أنت متأكد من الحذف النهائي؟")) {
+        if(confirm("حذف المريض نهائياً؟")) {
             patients = patients.filter(p => p.id !== currentId);
-            saveDB();
-            renderPatientList();
+            saveDB(); renderPatientList();
             document.getElementById('sectionsContainer').style.display = 'none';
             document.getElementById('currentPatientName').textContent = '';
             currentId = null;
@@ -440,7 +523,7 @@
         const body = card.querySelector('.section-body');
         card.classList.toggle('active');
         if (card.classList.contains('active')) {
-            body.style.maxHeight = body.scrollHeight + 100 + "px"; // إضافة مساحة إضافية للحاسبة
+            body.style.maxHeight = body.scrollHeight + 200 + "px";
             setDefaults(secId);
         } else {
             body.style.maxHeight = null;
@@ -453,13 +536,12 @@
         const timeStr = now.toTimeString().split(' ')[0].substring(0, 5);
 
         if(secId === 'sec_appointments') {
-            document.getElementById('appt_date').value = dateStr;
-            document.getElementById('appt_time').value = timeStr;
+            document.getElementById('appt_date').value = dateStr; document.getElementById('appt_time').value = timeStr;
         } else if(secId === 'sec_prescriptions') {
-            document.getElementById('rx_date').value = dateStr;
-            document.getElementById('rx_time').value = timeStr;
-            // تعيين تاريخ اليوم للحاسبة أيضاً
-            document.getElementById('calc_startDate').value = dateStr;
+            document.getElementById('rx_date').value = dateStr; document.getElementById('rx_time').value = timeStr;
+            const calcDate = document.getElementById('calc_startDate');
+            if(!calcDate.value) calcDate.value = dateStr;
+            updateCalculatorLive(); // تحديث فوري عند الفتح
         } else if(secId === 'sec_labs') {
             document.getElementById('lab_date').value = dateStr;
         } else if(secId === 'sec_vitals') {
@@ -470,13 +552,8 @@
     }
 
     function updateLabel(inputId, labelId) {
-        const input = document.getElementById(inputId);
-        const label = document.getElementById(labelId);
-        if(input.files && input.files[0]) {
-            label.textContent = "✅ تم تحديد الملف: " + input.files[0].name;
-            label.style.borderColor = "#10b981";
-            label.style.color = "#10b981";
-        }
+        const input = document.getElementById(inputId); const label = document.getElementById(labelId);
+        if(input.files && input.files[0]) { label.textContent = "✅ تم تحديد: " + input.files[0].name; label.style.borderColor = "#10b981"; label.style.color = "#10b981"; }
     }
 
     function saveData(type) {
@@ -485,8 +562,7 @@
 
         const commitSave = (entryData) => {
             patients[pIndex][type].unshift(entryData);
-            saveDB();
-            renderList(type);
+            saveDB(); renderList(type);
             
             if(type === 'prescriptions') {
                 document.getElementById('rx_details').value = '';
@@ -497,22 +573,14 @@
                 document.getElementById('calc_duration').value = '';
                 document.getElementById('calc_resultDate').value = '';
                 document.getElementById('calc_dayName').textContent = '';
+                document.getElementById('live_feedback').style.display = 'none';
             } else if (type === 'labs') {
-                document.getElementById('lab_name').value = '';
-                document.getElementById('lab_result').value = '';
-                document.getElementById('lab_file').value = '';
-                document.getElementById('lab_file_label').textContent = '📎 اضغط لإرفاق نتيجة التحليل (اختياري)';
-                document.getElementById('lab_file_label').style = '';
-            } else if (type === 'appointments') {
-                document.getElementById('appt_note').value = '';
-            } else if (type === 'vitals') {
-                document.getElementById('vital_weight').value = '';
-                document.getElementById('vital_height').value = '';
-            } else if (type === 'notes') {
-                document.getElementById('note_text').value = '';
-            }
+                document.getElementById('lab_name').value = ''; document.getElementById('lab_result').value = ''; document.getElementById('lab_file').value = '';
+                document.getElementById('lab_file_label').textContent = '📎 اضغط لإرفاق نتيجة التحليل'; document.getElementById('lab_file_label').style = '';
+            } else if (type === 'appointments') { document.getElementById('appt_note').value = ''; } 
+            else if (type === 'vitals') { document.getElementById('vital_weight').value = ''; document.getElementById('vital_height').value = ''; } 
+            else if (type === 'notes') { document.getElementById('note_text').value = ''; }
             
-            // تحديث الارتفاع
             const card = document.getElementById(`sec_${type}`);
             const body = card.querySelector('.section-body');
             body.style.maxHeight = body.scrollHeight + "px";
@@ -521,115 +589,71 @@
         let entry = {};
         if (type === 'prescriptions') {
             const details = document.getElementById('rx_details').value;
-            if(!details) return alert("يرجى كتابة تفاصيل الوصفة");
-            entry = {
-                date: document.getElementById('rx_date').value,
-                time: document.getElementById('rx_time').value,
-                details: details,
-                file: null
+            if(!details) return alert("اكتب الوصفة");
+            
+            const durationVal = document.getElementById('calc_duration').value;
+            const startVal = document.getElementById('calc_startDate').value;
+            
+            entry = { 
+                date: document.getElementById('rx_date').value, time: document.getElementById('rx_time').value, details: details, file: null,
+                treatmentDuration: durationVal || null, treatmentStart: startVal || null
             };
             const fileInput = document.getElementById('rx_file');
-            if (fileInput.files.length > 0) {
-                readFileAndCommit(fileInput.files[0], entry, commitSave);
-            } else {
-                commitSave(entry);
-            }
+            if (fileInput.files.length > 0) readFileAndCommit(fileInput.files[0], entry, commitSave);
+            else commitSave(entry);
         } else if (type === 'labs') {
             const name = document.getElementById('lab_name').value;
-            if(!name) return alert("يرجى كتابة اسم التحليل");
-            entry = {
-                date: document.getElementById('lab_date').value,
-                name: name,
-                result: document.getElementById('lab_result').value,
-                file: null
-            };
+            if(!name) return alert("اكتب اسم التحليل");
+            entry = { date: document.getElementById('lab_date').value, name: name, result: document.getElementById('lab_result').value, file: null };
             const fileInput = document.getElementById('lab_file');
-            if (fileInput.files.length > 0) {
-                readFileAndCommit(fileInput.files[0], entry, commitSave);
-            } else {
-                commitSave(entry);
-            }
+            if (fileInput.files.length > 0) readFileAndCommit(fileInput.files[0], entry, commitSave);
+            else commitSave(entry);
         } else {
-            if (type === 'appointments') {
-                entry = {
-                    date: document.getElementById('appt_date').value,
-                    time: document.getElementById('appt_time').value,
-                    note: document.getElementById('appt_note').value || "بدون ملاحظات"
-                };
-            } else if (type === 'vitals') {
-                entry = {
-                    date: document.getElementById('vital_date').value,
-                    weight: document.getElementById('vital_weight').value,
-                    height: document.getElementById('vital_height').value
-                };
-                if(!entry.weight && !entry.height) return;
-            } else if (type === 'notes') {
-                entry = {
-                    date: document.getElementById('note_date').value,
-                    text: document.getElementById('note_text').value
-                };
-                if(!entry.text) return;
-            }
+            if (type === 'appointments') entry = { date: document.getElementById('appt_date').value, time: document.getElementById('appt_time').value, note: document.getElementById('appt_note').value || "-" };
+            else if (type === 'vitals') { entry = { date: document.getElementById('vital_date').value, weight: document.getElementById('vital_weight').value, height: document.getElementById('vital_height').value }; if(!entry.weight && !entry.height) return; }
+            else if (type === 'notes') { entry = { date: document.getElementById('note_date').value, text: document.getElementById('note_text').value }; if(!entry.text) return; }
             commitSave(entry);
         }
     }
 
     function readFileAndCommit(file, entryObj, callback) {
         const reader = new FileReader();
-        reader.onload = function(e) {
-            entryObj.file = { name: file.name, data: e.target.result };
-            callback(entryObj);
-        };
+        reader.onload = function(e) { entryObj.file = { name: file.name, data: e.target.result }; callback(entryObj); };
         reader.readAsDataURL(file);
     }
 
     function deleteEntry(type, index) {
-        if(!confirm("حذف هذا السجل؟")) return;
-        const p = patients.find(x => x.id === currentId);
-        p[type].splice(index, 1);
-        saveDB();
-        renderList(type);
+        if(!confirm("حذف؟")) return;
+        const p = patients.find(x => x.id === currentId); p[type].splice(index, 1);
+        saveDB(); renderList(type);
     }
 
     function openAttachment(base64Data) {
-        const win = window.open();
-        win.document.write(`<iframe src="${base64Data}" style="border:0; width:100%; height:100vh;" allowfullscreen></iframe>`);
+        const win = window.open(); win.document.write(`<iframe src="${base64Data}" style="border:0; width:100%; height:100vh;" allowfullscreen></iframe>`);
     }
 
     function renderList(type) {
         const p = patients.find(x => x.id === currentId);
         const listDiv = document.getElementById(`list_${type}`);
         listDiv.innerHTML = '';
-        if (!p[type] || p[type].length === 0) {
-            listDiv.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:0.8rem;">لا توجد سجلات</div>';
-            return;
-        }
+        if (!p[type] || p[type].length === 0) { listDiv.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:0.8rem;">لا توجد سجلات</div>'; return; }
+        
         p[type].forEach((item, index) => {
-            let contentHtml = '';
-            let metaHtml = `<span>🗓 ${item.date}</span>`;
-            let attachmentHtml = '';
-            if (item.file) attachmentHtml = `<div onclick="openAttachment('${item.file.data}')" class="attachment-link">📎 عرض المرفق (${item.file.name})</div>`;
+            let contentHtml = '', metaHtml = `<span>🗓 ${item.date}</span>`, attachmentHtml = '';
+            if (item.file) attachmentHtml = `<div onclick="openAttachment('${item.file.data}')" class="attachment-link">📎 عرض المرفق</div>`;
 
-            if (type === 'appointments') {
-                metaHtml += ` <span>🕒 ${item.time}</span>`;
-                contentHtml = `<strong>السبب:</strong> ${item.note}`;
-            } else if (type === 'prescriptions') {
-                contentHtml = `<div style="white-space: pre-wrap;">${item.details}</div>${attachmentHtml}`;
-            } else if (type === 'labs') {
-                contentHtml = `<strong>${item.name}</strong><br><span style="color:#475569">${item.result}</span>${attachmentHtml}`;
-            } else if (type === 'vitals') {
-                contentHtml = `وزن: <strong>${item.weight || '-'}</strong> كغ | طول: <strong>${item.height || '-'}</strong> سم`;
-            } else if (type === 'notes') {
-                contentHtml = `<div style="white-space: pre-wrap;">${item.text}</div>`;
+            if (type === 'appointments') { metaHtml += ` <span>🕒 ${item.time}</span>`; contentHtml = `<strong>السبب:</strong> ${item.note}`; }
+            else if (type === 'prescriptions') { 
+                let statusBadge = "";
+                if(item.treatmentDuration && item.treatmentStart) statusBadge = getStatusBadge(item.treatmentStart, item.treatmentDuration);
+                contentHtml = `<div style="white-space: pre-wrap;">${item.details}</div>${attachmentHtml}${statusBadge}`; 
             }
-
-            const div = document.createElement('div');
-            div.className = 'entry-item';
-            div.innerHTML = `
-                <div class="entry-meta">${metaHtml}</div>
-                <div>${contentHtml}</div>
-                <button class="btn-delete-entry" onclick="deleteEntry('${type}', ${index})">×</button>
-            `;
+            else if (type === 'labs') { contentHtml = `<strong>${item.name}</strong><br><span style="color:#475569">${item.result}</span>${attachmentHtml}`; }
+            else if (type === 'vitals') { contentHtml = `وزن: <strong>${item.weight || '-'}</strong> | طول: <strong>${item.height || '-'}</strong>`; }
+            else if (type === 'notes') { contentHtml = `<div style="white-space: pre-wrap;">${item.text}</div>`; }
+            
+            const div = document.createElement('div'); div.className = 'entry-item';
+            div.innerHTML = `<div class="entry-meta">${metaHtml}</div><div>${contentHtml}</div><button class="btn-delete-entry" onclick="deleteEntry('${type}', ${index})">×</button>`;
             listDiv.appendChild(div);
         });
     }
