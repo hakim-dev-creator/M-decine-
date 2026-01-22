@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدير ملفات المرضى (قراءة مباشرة)</title>
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #334155;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            background-color: var(--card);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            border-top: 6px solid var(--primary);
+        }
+
+        h2 {
+            text-align: center;
+            margin: 0 0 1.5rem 0;
+            color: var(--primary-dark);
+        }
+
+        /* --- أدوات التحكم العلوية --- */
+        .controls-header {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        select {
+            flex-grow: 1;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: white;
+            cursor: pointer;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn-add {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 48px;
+            border-radius: 8px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .btn-add:hover {
+            background-color: var(--primary-dark);
+        }
+
+        /* --- النافذة المنزلقة --- */
+        .details-wrapper {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.5s cubic-bezier(0, 1, 0, 1), opacity 0.5s ease-in-out, margin-top 0.3s;
+            margin-top: 0;
+        }
+
+        .details-wrapper.open {
+            max-height: 4000px; 
+            opacity: 1;
+            margin-top: 20px;
+            transition: max-height 0.8s ease-in-out, opacity 0.5s ease-in-out, margin-top 0.3s;
+        }
+
+        .details-card {
+            background-color: #f1f5f9;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #475569;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: white;
+        }
+
+        .result-field {
+            background-color: #e0f2fe;
+            border-color: var(--primary);
+            color: #0369a1;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .day-label {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        /* --- منطقة الرفع --- */
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            background: white;
+            transition: 0.3s;
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: #f0f9ff;
+        }
+
+        .upload-input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-label {
+            color: #64748b;
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+
+        /* --- تنسيق قائمة الملفات (الجديد والمبسط) --- */
+        .files-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .file-row {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            transition: 0.2s;
+        }
+
+        .file-row:hover {
+            border-color: var(--primary);
+            background-color: #f8fafc;
+        }
+
+        .file-name-link {
+            flex-grow: 1;
+            color: #334155;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-left: 10px;
+        }
+
+        .file-name-link:hover {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+
+        .btn-delete-file {
+            background: none;
+            border: none;
+            color: #ef4444;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 0 5px;
+            line-height: 1;
+            opacity: 0.6;
+            transition: 0.2s;
+        }
+
+        .btn-delete-file:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        /* --- الأزرار السفلية --- */
+        .bottom-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            align-items: center;
+        }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            color: var(--danger);
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        
+        #saveIndicator {
+            color: #10b981;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>مدير ملفات المرضى</h2>
+    
+    <div class="controls-header">
+        <select id="patientSelect" onchange="loadSelectedPatient()">
+            <option value="" disabled selected>-- اختر مريضاً --</option>
+        </select>
+        <button class="btn-add" onclick="createNewPatient()" title="إضافة مريض جديد">+</button>
+    </div>
+
+    <div id="detailsPanel" class="details-wrapper">
+        <div class="details-card">
+            
+            <div class="form-group">
+                <label>اسم المريض</label>
+                <input type="text" id="p_name" placeholder="أدخل اسم المريض" oninput="updateCurrentData()">
+            </div>
+
+            <hr style="border-top:1px dashed #cbd5e1; margin: 15px 0;">
+
+            <div class="form-group">
+                <label>نوع العلاج</label>
+                <input type="text" id="p_treatment" placeholder="مثال: كورس مضاد حيوي" oninput="updateCurrentData()">
+            </div>
+
+            <div class="form-group">
+                <label>مدة العلاج (أيام)</label>
+                <input type="number" id="p_duration" placeholder="0" oninput="updateCurrentData()">
+            </div>
+
+            <div class="form-group">
+                <label>تاريخ البداية</label>
+                <input type="date" id="p_startDate" onchange="updateCurrentData()">
+            </div>
+
+            <div class="form-group">
+                <label>تاريخ النهاية المتوقع</label>
+                <input type="text" id="p_endDate" class="result-field" readonly>
+                <div id="p_dayName" class="day-label"></div>
+            </div>
+
+            <hr style="border-top:1px dashed #cbd5e1; margin: 15px 0;">
+
+            <div class="form-group">
+                <label>الملفات المرفقة</label>
+                
+                <div class="upload-area">
+                    <input type="file" id="fileInput" class="upload-input" multiple onchange="handleFileUpload(this)">
+                    <div class="upload-label">
+                        + اضغط لإضافة ملفات جديدة
+                    </div>
+                </div>
+                
+                <div id="filesContainer" class="files-list">
+                    </div>
+            </div>
+
+            <div class="bottom-actions">
+                <button class="btn-delete" onclick="deleteCurrentPatient()">حذف المريض نهائياً</button>
+                <span id="saveIndicator">تم الحفظ ✓</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    let patients = [];
+    let currentId = null;
+
+    window.onload = function() {
+        const savedData = localStorage.getItem('patients_db_unlimited');
+        if (savedData) {
+            patients = JSON.parse(savedData);
+        }
+        renderDropdown();
+        document.getElementById('detailsPanel').classList.remove('open');
+        document.getElementById('patientSelect').value = "";
+    };
+
+    function createNewPatient() {
+        const newId = Date.now();
+        const newPatient = {
+            id: newId,
+            name: "مريض جديد",
+            treatment: "",
+            duration: "",
+            startDate: new Date().toISOString().split('T')[0],
+            attachments: []
+        };
+
+        patients.push(newPatient);
+        currentId = newId;
+        
+        saveToLocal();
+        renderDropdown();
+        document.getElementById('patientSelect').value = newId;
+        loadSelectedPatient();
+        
+        setTimeout(() => {
+            document.getElementById('p_name').focus();
+            document.getElementById('p_name').select();
+        }, 300);
+    }
+
+    function renderDropdown() {
+        const select = document.getElementById('patientSelect');
+        select.innerHTML = '<option value="" disabled selected>-- اختر مريضاً --</option>';
+        patients.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.id;
+            option.textContent = p.name;
+            select.appendChild(option);
+        });
+        if (currentId) select.value = currentId;
+    }
+
+    function loadSelectedPatient() {
+        const select = document.getElementById('patientSelect');
+        const val = select.value;
+        if (!val) return;
+
+        currentId = parseInt(val);
+        const patient = patients.find(p => p.id === currentId);
+        
+        if (patient) {
+            document.getElementById('p_name').value = patient.name;
+            document.getElementById('p_treatment').value = patient.treatment || "";
+            document.getElementById('p_duration').value = patient.duration || "";
+            document.getElementById('p_startDate').value = patient.startDate || "";
+            if (!patient.attachments) patient.attachments = [];
+
+            calculateDate();
+            renderFiles();
+            document.getElementById('detailsPanel').classList.add('open');
+        }
+    }
+
+    function updateCurrentData() {
+        if (!currentId) return;
+        const patientIndex = patients.findIndex(p => p.id === currentId);
+        if (patientIndex === -1) return;
+
+        patients[patientIndex].name = document.getElementById('p_name').value || "بدون اسم";
+        patients[patientIndex].treatment = document.getElementById('p_treatment').value;
+        patients[patientIndex].duration = document.getElementById('p_duration').value;
+        patients[patientIndex].startDate = document.getElementById('p_startDate').value;
+
+        const select = document.getElementById('patientSelect');
+        const option = select.querySelector(`option[value="${currentId}"]`);
+        if(option) option.textContent = patients[patientIndex].name;
+
+        calculateDate();
+        saveToLocal();
+        showSaveEffect();
+    }
+
+    // --- قسم الملفات الجديد ---
+    function handleFileUpload(input) {
+        if (!currentId || !input.files.length) return;
+        
+        const patient = patients.find(p => p.id === currentId);
+
+        Array.from(input.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const attachment = {
+                    id: Date.now() + Math.random(),
+                    name: file.name,
+                    type: file.type,
+                    data: e.target.result 
+                };
+
+                patient.attachments.push(attachment);
+                renderFiles();
+                
+                if(!saveToLocal()) {
+                    patient.attachments.pop(); // التراجع إذا فشل الحفظ
+                    renderFiles();
+                } else {
+                    showSaveEffect();
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+        input.value = '';
+    }
+
+    // العرض المبسط: اسم الملف قابل للنقر + زر حذف فقط
+    function renderFiles() {
+        const container = document.getElementById('filesContainer');
+        container.innerHTML = '';
+        const patient = patients.find(p => p.id === currentId);
+        if (!patient || !patient.attachments) return;
+
+        patient.attachments.forEach(file => {
+            const row = document.createElement('div');
+            row.className = 'file-row';
+            
+            // الهيكل: [أيقونة ورقية] [اسم الملف (رابط)] [زر الحذف]
+            row.innerHTML = `
+                <span style="font-size:1.2rem;">📄</span>
+                <span class="file-name-link" onclick="openFile('${file.data}')" title="اضغط لفتح الملف">
+                    ${file.name}
+                </span>
+                <button class="btn-delete-file" onclick="deleteFile(${file.id})" title="حذف الملف">×</button>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    function deleteFile(fileId) {
+        if (!confirm("هل تريد حذف هذا الملف؟")) return;
+        const patient = patients.find(p => p.id === currentId);
+        if (patient) {
+            patient.attachments = patient.attachments.filter(f => f.id !== fileId);
+            renderFiles();
+            saveToLocal();
+        }
+    }
+    
+    // فتح الملف مباشرة
+    window.openFile = function(base64Data) {
+        const win = window.open();
+        win.document.write(`
+            <style>body{margin:0; background:#333; height:100vh; display:flex; justify-content:center; align-items:center;}</style>
+            <iframe src="${base64Data}" frameborder="0" style="border:0; width:100%; height:100%; background:white;" allowfullscreen></iframe>
+        `);
+    };
+
+    function calculateDate() {
+        const duration = parseInt(document.getElementById('p_duration').value);
+        const startDateStr = document.getElementById('p_startDate').value;
+        const outputField = document.getElementById('p_endDate');
+        const dayLabel = document.getElementById('p_dayName');
+
+        if (!duration || !startDateStr) {
+            outputField.value = "";
+            dayLabel.textContent = "";
+            return;
+        }
+
+        const date = new Date(startDateStr);
+        date.setDate(date.getDate() + (duration - 1));
+        const formatted = date.toISOString().split('T')[0];
+        outputField.value = formatted;
+        
+        const daysAr = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+        dayLabel.textContent = `يوافق يوم: ${daysAr[date.getDay()]}`;
+    }
+
+    function saveToLocal() {
+        try {
+            localStorage.setItem('patients_db_unlimited', JSON.stringify(patients));
+            return true;
+        } catch (e) {
+            alert("تنبيه: ذاكرة المتصفح ممتلئة! يرجى حذف بعض الملفات.");
+            return false;
+        }
+    }
+
+    function deleteCurrentPatient() {
+        if (confirm("حذف المريض وجميع ملفاته؟")) {
+            patients = patients.filter(p => p.id !== currentId);
+            saveToLocal();
+            currentId = null;
+            renderDropdown();
+            document.getElementById('detailsPanel').classList.remove('open');
+            document.getElementById('patientSelect').value = "";
+        }
+    }
+
+    function showSaveEffect() {
+        const indicator = document.getElementById('saveIndicator');
+        indicator.style.opacity = '1';
+        setTimeout(() => indicator.style.opacity = '0', 1000);
+    }
+</script>
+
+</body>
+</html>
